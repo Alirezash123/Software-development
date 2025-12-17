@@ -1,3 +1,7 @@
+|      |      |
+| ---- | ---- |
+|      |      |
+
 ### مستند API سرویس احراز هویت و کنترل دسترسی (Auth Service)                   
 
 
@@ -367,6 +371,230 @@ curl --location --request PUT 'http://127.0.0.1:5001/schedule' \
 ```
 {
     "message": "Clinic info updated"
+}
+```
+
+### **مستند User Service (پنل کاربران عادی)**                                   
+
+Service مسئول ارائه امکانات کاربران عادی سامانه می‌باشد. این سرویس امکان مشاهده پزشکان، رزرو و مشاهده ویزیت‌ها، مدیریت علاقه‌مندی‌ها، ارسال کامنت و مدیریت اطلاعات کاربری را فراهم می‌کند.
+
+ 
+
+این سرویس برای انجام برخی عملیات از Doctor Service استفاده می‌کند 
+
+
+
+**مشاهده لیست پزشکان (با فیلتر)**
+
+
+
+**Endpoints**:GET /doctors
+
+
+
+Query Parameters (اختیاری):
+
+| نام       | توضیح              |
+| --------- | ------------------ |
+| city      | فیلتر بر اساس شهر  |
+| specialty | فیلتر بر اساس تخصص |
+
+
+
+**نمونه درخواست:**
+
+
+
+```
+curl "http://localhost:5002/doctors?city=Tehran&specialty=Cardiology
+```
+
+**پاسخ نمونه**
+
+
+
+```
+[
+  {
+    "doctor_id": 1,
+    "city": "Tehran",
+    "specialty": "Cardiology"
+  }
+]
+
+```
+
+**درخواست رزرو ویزیت**
+
+
+
+**Endpoint**:POST /visits
+
+
+
+```
+<Headers: Authorization: Bearer <JWT
+```
+
+**Body**
+
+```
+{
+  "doctor_id": 1,
+  "date": "2025-01-10",
+  "time": "10:30"
+}
+
+```
+
+**پاسخ**
+
+```
+{
+    "message": "Visit booked successfully",
+    "visit_id": 2
+}
+```
+
+
+
+**مشاهده ویزیت‌های رزرو شده کاربر**
+
+
+
+**Endpoint**:GET /my_visits
+
+
+
+```
+<Headers: Authorization: Bearer <JWT
+```
+
+**پاسخ نمونه**
+
+
+
+```
+[
+  {
+    "doctor_id": 1,
+    "date": "2025-01-10",
+    "time": "10:30",
+    "status": "accepted"
+  }
+]
+
+```
+
+**افزودن پزشک به لیست علاقه‌مندی‌ها**
+
+
+
+**Endpoint**:POST /favorite
+
+
+
+```
+<Headers: Authorization: Bearer <JWT
+```
+
+
+
+
+
+**Body**
+
+```
+{
+  "doctor_id": 1
+}
+
+```
+
+**پاسخ**
+
+
+
+```
+{
+  "message": "Doctor added to favorites"
+}
+
+```
+
+**ارسال کامنت برای پزشک**
+
+
+
+**Endpoint**:POST /comment
+
+
+
+```
+<Headers: Authorization: Bearer <JWT
+```
+
+
+
+
+
+**Body**
+
+
+
+```
+{
+  "doctor_id": 1,
+  "content": "دکتر بسیار خوش برخورد و حرفه‌ای بودند"
+}
+
+```
+
+**پاسخ**
+
+
+
+```
+{
+  "message": "Comment added"
+}
+
+```
+
+**ثبت یا ویرایش اطلاعات کاربر**
+
+
+
+**Endpoint**:POST / PUT /profile
+
+
+
+```
+<Headers: Authorization: Bearer <JWT
+```
+
+**Body**
+
+
+
+```
+{
+  "first_name": "Ali",
+  "last_name": "Ahmadi",
+  "phone": "09121234567"
+}
+
+```
+
+
+
+**پاسخ**
+
+
+
+```
+{
+    "message": "Profile saved successfully"
 }
 ```
 
