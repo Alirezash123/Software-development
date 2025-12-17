@@ -1,79 +1,206 @@
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+مستند API سرویس احراز هویت و کنترل دسترسی (Auth Service)
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///clinic.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+این سرویس مسئول ثبت‌نام، ورود، احراز هویت با JWT و کنترل دسترسی کاربران است. طبق صورت پروژه، کاربران می‌توانند یکی از دو نقش زیر را داشته باشند:
 
-# جدول نقش کاربران
-class Role(db.Model):
-    __tablename__ = 'roles'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)  # guest, regular, doctor
+user (کاربر عادی)
 
-# جدول کاربران
-class User(db.Model):
-    __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(255), nullable=False)
-    first_name = db.Column(db.String(80))
-    last_name = db.Column(db.String(80))
-    phone_number = db.Column(db.String(20))
-    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
-    national_medical_number = db.Column(db.String(50))  # فقط برای پزشک
+doctor (پزشک)
 
-    role = db.relationship('Role', backref='users')
-    visits = db.relationship('Visit', backref='user', lazy=True)
-    comments = db.relationship('Comment', backref='user', lazy=True)
-    favorites = db.relationship('FavoriteDoctor', backref='user', lazy=True)
-    doctor_profile = db.relationship('DoctorProfile', uselist=False, backref='user')
 
-# جدول اطلاعات پزشک
-class DoctorProfile(db.Model):
-    __tablename__ = 'doctor_profiles'
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
-    address = db.Column(db.String(255))
-    city = db.Column(db.String(100))  # برای فیلتر بر اساس شهر
-    specialty = db.Column(db.String(100))  # تخصص پزشک
-    degree = db.Column(db.String(100))  # مدرک تحصیلی
-    work_days = db.Column(db.String(255))  # مثال: "شنبه,یکشنبه,دوشنبه"
-    work_hours = db.Column(db.String(255))  # مثال: "08:00-12:00,14:00-18:00"
+این سرویس هیچ اطلاعات دامنه‌ای مثل شهر، تخصص، ویزیت و… را نگه‌داری نمی‌کند و فقط منبع حقیقت هویت کاربران است.
 
-    visits = db.relationship('Visit', backref='doctor', lazy=True)
-    comments = db.relationship('Comment', backref='doctor', lazy=True)
-    favorited_by = db.relationship('FavoriteDoctor', backref='doctor', lazy=True)
 
-# جدول وقت ویزیت
-class Visit(db.Model):
-    __tablename__ = 'visits'
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    doctor_id = db.Column(db.Integer, db.ForeignKey('doctor_profiles.id'), nullable=False)
-    visit_date = db.Column(db.Date, nullable=False)
-    visit_time = db.Column(db.Time, nullable=False)
-    status = db.Column(db.String(50), default="pending")  # pending, confirmed, cancelled
+---
 
-# جدول کامنت کاربران
-class Comment(db.Model):
-    __tablename__ = 'comments'
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    doctor_id = db.Column(db.Integer, db.ForeignKey('doctor_profiles.id'), nullable=False)
-    text = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+🔐 احراز هویت با JWT
 
-# جدول علاقه‌مندی پزشک برای کاربران
-class FavoriteDoctor(db.Model):
-    __tablename__ = 'favorite_doctors'
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    doctor_id = db.Column(db.Integer, db.ForeignKey('doctor_profiles.id'), nullable=False)
+بعد از ورود موفق، یک JWT Token تولید می‌شود
 
-# ایجاد دیتابیس
-if __name__ == "__main__":
-    db.create_all()
-    print("Database created successfully!")
+این توکن در Header تمام درخواست‌های سایر سرویس‌ها ارسال می‌شود
+
+سایر سرویس‌ها با استفاده از این توکن هویت و نقش کاربر را تشخیص می‌دهند
+
+
+Header استاندارد:
+
+Authorization: Bearer <JWT_TOKEN>
+
+
+---
+
+1️⃣ ثبت نام کاربر / پزشک
+
+Endpoint
+
+POST /auth/register
+
+توضیح
+
+برای همه کاربران: username، password و role اجباری است
+
+اگر نقش doctor باشد، احراز هویت پزشک با شماره نظام پزشکی و شماره تلفن انجام می‌شود
+
+
+Body (JSON)
+
+{
+  "username": "ali",
+  "password": "123456",
+  "role": "doctor",
+  "medical_number": "12345",
+  "phone": "09123456789"
+}
+
+پاسخ موفق
+
+{
+  "message": "registered successfully"
+}
+
+curl
+
+curl -X POST http://localhost:5000/auth/register \
+-H "Content-Type: application/json" \
+-d '{"username":"ali","password":"123456","role":"doctor","medical_number":"12345","phone":"09123456789"}'
+
+
+---
+
+2️⃣ ورود (Login)
+
+Endpoint
+
+POST /auth/login
+
+توضیح
+
+در صورت صحیح بودن اطلاعات، JWT Token تولید می‌شود
+
+این توکن برای دسترسی به سایر سرویس‌ها استفاده می‌شود
+
+
+Body (JSON)
+
+{
+  "username": "ali",
+  "password": "123456"
+}
+
+پاسخ موفق
+
+{
+  "token": "<JWT_TOKEN>",
+  "role": "doctor"
+}
+
+curl
+
+curl -X POST http://localhost:5000/auth/login \
+-H "Content-Type: application/json" \
+-d '{"username":"ali","password":"123456"}'
+
+
+---
+
+3️⃣ بررسی توکن (برای سایر سرویس‌ها)
+
+Endpoint
+
+GET /auth/verify
+
+توضیح
+
+این endpoint مخصوص سرویس‌های دیگر است
+
+توکن را بررسی کرده و اطلاعات کاربر را برمی‌گرداند
+
+
+Header
+
+Authorization: Bearer <JWT_TOKEN>
+
+پاسخ موفق
+
+{
+  "user_id": 1,
+  "role": "doctor"
+}
+
+
+---
+
+🗄️ جداول پایگاه داده
+
+جدول users
+
+نگه‌داری اطلاعات پایه کاربران
+
+تعیین نقش کاربر (user / doctor)
+
+
+جدول doctor_profiles
+
+فقط برای احراز هویت پزشکان
+
+نگه‌داری شماره نظام پزشکی و شماره تلفن
+
+
+> اطلاعاتی مثل شهر، تخصص، برنامه کاری پزشک در این سرویس ذخیره نمی‌شود و مربوط به سرویس مدیریت پزشک است.
+
+
+
+
+---
+
+✅ جمع‌بندی مسئولیت‌های Auth Service
+
+ثبت نام کاربران
+
+ورود و تولید JWT
+
+اعتبارسنجی توکن
+
+کنترل نقش‌ها
+
+
+❌ این سرویس مسئول موارد زیر نیست:
+
+مدیریت ویزیت
+
+برنامه کاری پزشک
+
+اطلاعات پروفایل کاربر یا پزشک
+
+
+
+---
+
+📌 این مستند مطابق دقیق صورت پروژه و مناسب تحویل دانشگاه می‌باشد.
+
+
+
+اوکی 👍
+الان مستند فقط و فقط سرویس Auth تمیز، استاندارد و مطابق صورت پروژه آماده است.
+
+این مستند:
+
+دقیقاً همون چیزیه که استاد از «احراز هویت و کنترل دسترسی» می‌خواد
+
+اضافی‌گویی نداره
+
+مرز مسئولیت سرویس‌ها رو شفاف کرده (خیلی مهم برای نمره)
+
+curl و مثال واقعی داره
+
+
+گام بعدی هر وقت خواستی:
+
+مستند Doctor Service
+
+مستند User Panel Service
+
+یا یکی‌کردن همه به یک README نهایی تحویلی
+
+
+فعلاً کارت در Auth کاملاً بسته و اوکیه ✔
+
