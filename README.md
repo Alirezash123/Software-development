@@ -1,7 +1,3 @@
-|      |      |
-| ---- | ---- |
-|      |      |
-
 ### مستند API سرویس احراز هویت و کنترل دسترسی (Auth Service)                   
 
 
@@ -374,6 +370,47 @@ curl --location --request PUT 'http://127.0.0.1:5001/schedule' \
 }
 ```
 
+
+
+**تعغیر مشخصات پروفایل**
+
+
+
+ PUT /doctor-profile **:Endpoint**
+
+
+
+```
+<Headers: Authorization: Bearer <JWT
+```
+
+دکوریتورها: login_required + doctor_required
+
+
+
+**(json)Body:**
+
+
+
+```
+{
+    "city":"Mashhad",
+    "specialty":"head"
+}
+```
+
+**خروجی نمونه:**
+
+
+
+```
+{
+    "message": "profile info updated"
+}
+```
+
+
+
 ### **مستند User Service (پنل کاربران عادی)**                                   
 
 Service مسئول ارائه امکانات کاربران عادی سامانه می‌باشد. این سرویس امکان مشاهده پزشکان، رزرو و مشاهده ویزیت‌ها، مدیریت علاقه‌مندی‌ها، ارسال کامنت و مدیریت اطلاعات کاربری را فراهم می‌کند.
@@ -597,4 +634,3 @@ curl "http://localhost:5002/doctors?city=Tehran&specialty=Cardiology
     "message": "Profile saved successfully"
 }
 ```
-
