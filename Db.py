@@ -1,254 +1,65 @@
-خیلی خوب 👍
-الان مستند رسمی و تمیز User Service (پنل کاربران عادی) رو دقیقاً براساس همین کدی که دادی می‌نویسم؛ طوری که استاد هم ببینه بگه «اوکیه، دقیق مستند شده».
-
-
----
-
-📘 مستند User Service (پنل کاربران عادی)
-
-معرفی سرویس
-
-User Service مسئول ارائه امکانات کاربران عادی سامانه می‌باشد. این سرویس امکان مشاهده پزشکان، رزرو و مشاهده ویزیت‌ها، مدیریت علاقه‌مندی‌ها، ارسال کامنت و مدیریت اطلاعات کاربری را فراهم می‌کند.
-
-این سرویس برای انجام برخی عملیات از Doctor Service استفاده می‌کند و برای احراز هویت به Auth Service وابسته است.
-
-
----
-
-احراز هویت
-
-تمام endpointهای محافظت‌شده نیازمند JWT معتبر هستند:
-
-Authorization: Bearer <JWT>
-
-JWT توسط Auth Service صادر شده و شامل موارد زیر است:
-
-user_id
-
-role
-
-
-
----
-
-وابستگی‌ها
-
-Auth Service (JWT)
-
-Doctor Service (پزشکان و ویزیت‌ها)
-
-پایگاه داده داخلی User Service
-
-
-
----
-
-1️⃣ مشاهده لیست پزشکان (با فیلتر)
-
-GET /doctors
-
-Query Parameters (اختیاری)
-
-نام	توضیح
-
-city	فیلتر بر اساس شهر
-specialty	فیلتر بر اساس تخصص
-
-
-نمونه درخواست
-
-curl "http://localhost:5002/doctors?city=Tehran&specialty=Cardiology"
-
-پاسخ نمونه
-
-[
-  {
-    "doctor_id": 1,
-    "city": "Tehran",
-    "specialty": "Cardiology"
-  }
-]
-
-📌 این اطلاعات از Doctor Service دریافت می‌شود.
-
-
----
-
-2️⃣ درخواست رزرو ویزیت
-
-POST /visits
-
-Headers
-
-Authorization: Bearer <JWT>
-
-Body
-
-{
-  "doctor_id": 1,
-  "date": "2025-01-10",
-  "time": "10:30"
-}
-
-پاسخ
-
-{
-  "message": "Visit requested successfully"
-}
-
-📌 درخواست به Doctor Service ارسال می‌شود.
-
-
----
-
-3️⃣ مشاهده ویزیت‌های رزرو شده کاربر
-
-GET /my_visits
-
-Headers
-
-Authorization: Bearer <JWT>
-
-پاسخ نمونه
-
-[
-  {
-    "doctor_id": 1,
-    "date": "2025-01-10",
-    "time": "10:30",
-    "status": "accepted"
-  }
-]
-
-📌 داده‌ها از Doctor Service دریافت می‌شوند.
-
-
----
-
-4️⃣ افزودن پزشک به لیست علاقه‌مندی‌ها
-
-POST /favorite
-
-Body
-
-{
-  "user_id": 5,
-  "doctor_id": 1
-}
-
-پاسخ
-
-{
-  "message": "Doctor added to favorites"
-}
-
-📌 داده‌ها در دیتابیس User Service ذخیره می‌شوند.
-
-
----
-
-5️⃣ ارسال کامنت برای پزشک
-
-POST /comment
-
-Body
-
-{
-  "user_id": 5,
-  "doctor_id": 1,
-  "content": "دکتر بسیار خوش برخورد و حرفه‌ای بودند"
-}
-
-پاسخ
-
-{
-  "message": "Comment added"
-}
-
-
----
-
-6️⃣ مشاهده کامنت‌های مربوط به یک پزشک
-
-GET /comments/doctor/<doctor_id>
-
-نمونه درخواست
-
-curl http://localhost:5002/comments/doctor/1
-
-پاسخ نمونه
-
-[
-  {
-    "comment_id": 3,
-    "patient_id": 5,
-    "text": "دکتر عالی بودند",
-    "created_at": "2025-01-05T10:30:00"
-  }
-]
-
-
----
-
-7️⃣ ثبت یا ویرایش اطلاعات کاربر
-
-POST / PUT /profile
-
-Headers
-
-Authorization: Bearer <JWT>
-
-Body
-
-{
-  "first_name": "Ali",
-  "last_name": "Ahmadi",
-  "phone": "09121234567"
-}
-
-پاسخ
-
-{
-  "message": "Profile saved successfully"
-}
-
-📌 فقط کاربران با نقش user مجاز به استفاده از این endpoint هستند.
-
-
----
-
-امنیت
-
-احراز هویت با JWT
-
-بررسی نقش کاربر (role)
-
-عدم دسترسی کاربران عادی به پنل پزشک
-
-جداسازی داده‌ها در معماری Microservice
-
-
-
----
-
-جمع‌بندی
-
-✔ مطابق کامل صورت پروژه
-✔ رعایت اصول Microservice
-✔ وابستگی کنترل‌شده به سرویس‌ها
-✔ قابل تحویل دانشگاهی بدون اصلاح
-
-
----
-
-اگر خواستی:
-
-مستند نهایی کل پروژه (PDF)
-
-دیاگرام معماری
-
-بررسی امنیتی برای نمره کامل
-
-
-بگو 👌
-
+from datetime import datetime
+
+# نقش‌های کاربری
+class Role:
+    GUEST = 'guest'
+    USER = 'user'
+    DOCTOR = 'doctor'
+
+# جدول کاربران
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(20), nullable=False)  # guest, user, doctor
+    first_name = db.Column(db.String(50))
+    last_name = db.Column(db.String(50))
+    phone = db.Column(db.String(20))
+    medical_id = db.Column(db.String(50), unique=True)  # فقط برای پزشکان
+
+    # روابط
+    appointments = db.relationship('Appointment', backref='user', lazy=True)
+    favorite_doctors = db.relationship('FavoriteDoctor', backref='user', lazy=True)
+    comments = db.relationship('Comment', backref='user', lazy=True)
+
+# جدول پزشکان (اطلاعات تخصصی پزشک)
+class DoctorProfile(db.Model):
+    __tablename__ = 'doctor_profiles'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True)
+    address = db.Column(db.String(255))
+    city = db.Column(db.String(100))
+    specialty = db.Column(db.String(100))
+    degree = db.Column(db.String(100))
+    work_days = db.Column(db.String(100))  # مثال: "شنبه-یکشنبه-دوشنبه"
+    work_hours = db.Column(db.String(100))  # مثال: "08:00-12:00,14:00-18:00"
+
+    # روابط
+    appointments = db.relationship('Appointment', backref='doctor', lazy=True)
+    comments = db.relationship('Comment', backref='doctor', lazy=True)
+
+# جدول وقت‌های ویزیت
+class Appointment(db.Model):
+    __tablename__ = 'appointments'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))  # کاربر عادی
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctor_profiles.id'))  # پزشک
+    appointment_time = db.Column(db.DateTime, nullable=False)
+    status = db.Column(db.String(20), default='pending')  # pending, confirmed, canceled
+
+# جدول کامنت‌ها
+class Comment(db.Model):
+    __tablename__ = 'comments'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctor_profiles.id'))
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# جدول لیست علاقه‌مندی‌ها
+class FavoriteDoctor(db.Model):
+    __tablename__ = 'favorite_doctors'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctor_profiles.id'))
