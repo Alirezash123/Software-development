@@ -1,3 +1,12 @@
+Flask==3.0.0
+Flask-SQLAlchemy==3.1.1
+Flask-JWT-Extended==4.6.0
+Werkzeug==3.0.1
+
+
+
+
+
 from flask import Flask, request, jsonify, g
 from flask_jwt_extended import (
     JWTManager,
