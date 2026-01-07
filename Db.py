@@ -1,3 +1,50 @@
+@app.route('/doctor/profile', methods=['GET', 'PUT'])
+@role_required(Role.DOCTOR)
+def doctor_profile():
+    profile = DoctorProfile.query.filter_by(user_id=g.current_user.id).first()
+    if not profile:
+        return jsonify({'msg': 'Profile not found'}), 404
+
+    if request.method == 'GET':
+        return jsonify({
+            'username': g.current_user.username,
+            'first_name': g.current_user.first_name,
+            'last_name': g.current_user.last_name,
+            'phone': g.current_user.phone,
+            'address': profile.address,
+            'city': profile.city,
+            'specialty': profile.specialty,
+            'degree': profile.degree,
+            'work_days': profile.work_days,
+            'work_hours': profile.work_hours
+        })
+
+    elif request.method == 'PUT':
+        data = request.json
+
+        # ویرایش اطلاعات کاربری
+        g.current_user.first_name = data.get('first_name', g.current_user.first_name)
+        g.current_user.last_name = data.get('last_name', g.current_user.last_name)
+        g.current_user.phone = data.get('phone', g.current_user.phone)
+
+        # ویرایش اطلاعات مطب
+        profile.address = data.get('address', profile.address)
+        profile.city = data.get('city', profile.city)
+        profile.specialty = data.get('specialty', profile.specialty)
+        profile.degree = data.get('degree', profile.degree)
+        profile.work_days = data.get('work_days', profile.work_days)
+        profile.work_hours = data.get('work_hours', profile.work_hours)
+
+        db.session.commit()
+        return jsonify({'msg': 'Profile updated successfully'})
+
+
+
+
+
+
+
+
 @app.route('/profile', methods=['GET', 'PUT'])
 @role_required(Role.USER)
 def user_profile():
