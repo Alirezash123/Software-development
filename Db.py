@@ -1,3 +1,38 @@
+@app.route('/appointments', methods=['POST'])
+@role_required(Role.USER)
+def request_appointment():
+    data = request.json
+    doctor_id = data['doctor_id']
+    appointment_time = datetime.fromisoformat(data['time'])
+
+    # ---------- بررسی تداخل دقیق زمان ----------
+    conflict = Appointment.query.filter_by(
+        doctor_id=doctor_id,
+        appointment_time=appointment_time
+    ).first()
+
+    if conflict:
+        return jsonify({'msg': 'This time slot is already booked'}), 400
+    # ------------------------------------------
+
+    appointment = Appointment(
+        user_id=g.current_user.id,
+        doctor_id=doctor_id,
+        appointment_time=appointment_time,
+        status='pending'  # یا میخوای مستقیم confirmed هم بزاری
+    )
+
+    db.session.add(appointment)
+    db.session.commit()
+    return jsonify({'msg': 'Appointment requested'})
+
+
+
+
+
+
+
+
 @app.route('/doctor/profile', methods=['GET', 'PUT'])
 @role_required(Role.DOCTOR)
 def doctor_profile():
