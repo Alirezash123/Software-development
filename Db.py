@@ -1,3 +1,51 @@
+def role_required(*roles):
+    def decorator(fn):
+        @wraps(fn)
+        @login_required  # حتما قبل از چک role
+        def wrapper(*args, **kwargs):
+            if g.current_user.role not in roles:
+                return jsonify({'msg': 'Access denied'}), 403
+            return fn(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+
+
+
+
+
+
+
+
+def login_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        verify_jwt_in_request()  # اگر JWT نبود خطا می‌دهد
+        identity = get_jwt_identity()
+        # identity الان دیکشنری است {"id": user.id, "role": user.role}
+        user = User.query.get(identity['id'])
+        if not user:
+            return jsonify({'msg': 'Invalid token'}), 401
+        g.current_user = user
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 from flask import Flask, request, jsonify, g
 from flask_jwt_extended import (
     JWTManager,
