@@ -1,3 +1,38 @@
+@app.route('/profile', methods=['GET', 'PUT'])
+@role_required(Role.USER)
+def user_profile():
+    user = g.current_user
+
+    if request.method == 'GET':
+        # بازگرداندن اطلاعات کاربر
+        return jsonify({
+            'username': user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'phone': user.phone,
+            'role': user.role
+        })
+
+    elif request.method == 'PUT':
+        # ویرایش اطلاعات کاربر
+        data = request.json
+        user.first_name = data.get('first_name', user.first_name)
+        user.last_name = data.get('last_name', user.last_name)
+        user.phone = data.get('phone', user.phone)
+
+        # اگر رمز عبور هم تغییر کند
+        if data.get('password'):
+            user.password = generate_password_hash(data['password'])
+
+        db.session.commit()
+        return jsonify({'msg': 'Profile updated successfully'})
+
+
+
+
+
+
+
 @app.route('/appointments/my', methods=['GET'])
 @role_required(Role.USER)
 def my_appointments():
