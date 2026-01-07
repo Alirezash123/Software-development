@@ -1,3 +1,15 @@
+token = create_access_token(
+    identity=str(user.id),            # حتما رشته باشه
+    additional_claims={"role": user.role}  # نقش کاربر در JWT
+)
+
+
+
+
+
+
+
+
 def role_required(*roles):
     def decorator(fn):
         @wraps(fn)
