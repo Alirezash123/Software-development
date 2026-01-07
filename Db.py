@@ -1,3 +1,29 @@
+@app.route('/appointments/my', methods=['GET'])
+@role_required(Role.USER)
+def my_appointments():
+    # تمام وقت‌های ویزیت این کاربر
+    appointments = Appointment.query.filter_by(user_id=g.current_user.id).all()
+
+    return jsonify([
+        {
+            'appointment_id': a.id,
+            'doctor_id': a.doctor_id,
+            'doctor_name': f"{a.doctor.user.username}" if a.doctor else None,
+            'appointment_time': a.appointment_time.isoformat(),
+            'status': a.status
+        }
+        for a in appointments
+    ])
+
+
+
+
+
+
+
+
+
+
 from flask import Flask, request, jsonify, g
 from flask_jwt_extended import (
     JWTManager,
